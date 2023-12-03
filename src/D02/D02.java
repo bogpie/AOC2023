@@ -11,6 +11,21 @@ public class D02 {
         main(args);
     }
 
+    private static void getLines(ArrayList<String> lines) {
+        try {
+            File myObj = new File("src/D02/input.txt");
+            Scanner myReader = new Scanner(myObj);
+            while (myReader.hasNextLine()) {
+                String line = myReader.nextLine();
+                lines.add(line);
+            }
+            myReader.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+    }
+
     public void main(String[] args) {
         ArrayList<String> lines = new ArrayList<>();
         getLines(lines);
@@ -73,21 +88,6 @@ public class D02 {
         System.out.println(firstSum);
         System.out.println(secondSum);
 
-    }
-
-    private static void getLines(ArrayList<String> lines) {
-        try {
-            File myObj = new File("src/D02/input.txt");
-            Scanner myReader = new Scanner(myObj);
-            while (myReader.hasNextLine()) {
-                String line = myReader.nextLine();
-                lines.add(line);
-            }
-            myReader.close();
-        } catch (FileNotFoundException e) {
-            System.out.println("An error occurred.");
-            e.printStackTrace();
-        }
     }
 
 }
