@@ -46,6 +46,24 @@ public class D05 {
         }
     }
 
+    static class SeedInterval {
+        long start;
+        long length;
+
+        public SeedInterval(long start, long length) {
+            this.start = start;
+            this.length = length;
+        }
+
+        @Override
+        public String toString() {
+            return "SeedInterval{" +
+                    "start=" + start +
+                    ", length=" + length +
+                    '}' + "\n";
+        }
+    }
+
     private void parse(ArrayList<String> lines, List<Long> seeds, List<ArrayList<Interval>> maps) {
         lines.removeIf(
                 line -> line.length() == 0
@@ -130,17 +148,94 @@ public class D05 {
         parse(lines, seeds, maps);
 
         System.out.println("seeds: " + seeds);
-        System.out.println("maps: " + maps);
 
-        long min = Long.MAX_VALUE;
+        long min = partOne(seeds, maps);
+        System.out.println(min);
+
+        List<SeedInterval> seedIntervals = new ArrayList<>();
+
+        for (int idSeed = 0; idSeed < seeds.size() - 1; idSeed += 2) {
+            seedIntervals.add(
+                    new SeedInterval(
+                            seeds.get(idSeed),
+                            seeds.get(idSeed + 1)
+                    )
+            );
+        }
+
+        int seedIntervalId = 0;
+
+
+        for (seedIntervalId = 0; seedIntervalId < seedIntervals.size(); ++seedIntervalId) {
+            var seedInterval = seedIntervals.get(seedIntervalId);
+            var seedStart = seedInterval.start;
+            var seedEnd = seedInterval.start + seedInterval.length;
+
+            seedIntervals.remove(seedInterval);
+            seedIntervalId--;
+
+            for (var map : maps) {
+                for (var interval : map) {
+                    var sourceStart = interval.sourceStart;
+                    var sourceEnd = interval.sourceStart + interval.length;
+
+                    var destStart = interval.destStart;
+                    var destEnd = interval.destStart + interval.length;
+
+                    // (.....[....).....]
+                    seedIntervals.remove(seedInterval);
+                    if (seedStart <= sourceStart && sourceStart <= seedEnd && seedEnd <= sourceEnd) {
+                        seedIntervals.addAll(
+                                List.of(
+                                        new SeedInterval(seedStart, sourceStart - seedStart),
+                                        new SeedInterval(destStart, seedEnd - sourceStart)
+                                )
+                        );
+                    }
+                    // [.....(....].....)
+                    else if (sourceStart <= seedStart && seedStart <= sourceEnd && sourceEnd <= seedEnd) {
+                        seedIntervals.addAll(
+                                List.of(
+                                        new SeedInterval(destStart, sourceEnd - seedStart),
+                                        new SeedInterval(seedEnd, seedEnd - sourceEnd)
+                                )
+                        );
+                    }
+                    // [.....(....).....]
+                    else if (sourceStart <= seedStart && seedEnd <= sourceEnd) {
+                        seedIntervals.add(
+                                new SeedInterval(destStart, seedEnd - seedStart)
+                        );
+                    }
+                    // (.....[....].....)
+                    else if (seedStart <= sourceStart && sourceEnd <= seedEnd)
+                        seedIntervals.addAll(
+                                List.of(
+                                        new SeedInterval(seedStart, sourceStart - seedStart),
+                                        new SeedInterval(destStart, sourceEnd - sourceStart),
+                                        new SeedInterval(seedEnd, seedEnd - sourceEnd)
+                                )
+                        );
+                }
+            }
+        }
+
+        // Find min of start of seedIntervals
+        long partTwo = seedIntervals.stream()
+                .mapToLong(seedInterval -> seedInterval.start)
+                .min()
+                .orElseThrow();
+
+    }
+
+
+    private static long partOne(List<Long> seeds, List<ArrayList<Interval>> maps) {
+        long min;
+        min = Long.MAX_VALUE;
 
         for (var value : seeds) {
             for (var map : maps) {
                 long oldValue = value;
-
-                if (oldValue == 53) {
-                    System.out.println("debug");
-                }
 
                 for (var interval : map) {
                     long sourceStart = interval.sourceStart;
@@ -155,15 +250,9 @@ public class D05 {
                     }
 
                 }
-                System.out.println(oldValue + " -> " + value);
             }
-            System.out.println(value);
             min = Math.min(min, value);
-            System.out.println();
         }
-
-        System.out.println(min);
+        return min;
     }
-
-
 }
