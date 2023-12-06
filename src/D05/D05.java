@@ -227,7 +227,7 @@ public class D05 {
                 long newSeedEnd = seed.getEnd() + interval.getDiff();
 
                 // ....(.........[.......)........]........
-                if (seed.getStart() <= interval.getSourceStart() && interval.getSourceStart() <= seed.getEnd() && seed.getEnd() <= interval.getSourceEnd()) {
+                if (seed.getStart() < interval.getSourceStart() && interval.getSourceStart() < seed.getEnd() && seed.getEnd() <= interval.getSourceEnd()) {
                     queue.addAll(List.of(
                             new SeedInterval(
                                     seed.getStart(),
@@ -244,11 +244,11 @@ public class D05 {
                     break;
                 }
                 // ....[.........(.......]........)........
-                else if (interval.getSourceStart() <= seed.getStart() && seed.getStart() <= interval.getSourceEnd() && interval.getSourceEnd() <= seed.getEnd()) {
+                else if (interval.getSourceStart() < seed.getStart() && seed.getStart() < interval.getSourceEnd() && interval.getSourceEnd() <= seed.getEnd()) {
                     queue.addAll(List.of(
                             new SeedInterval(
                                     newSeedStart,
-                                    interval.getDestEnd(),
+                                    interval.getDestEnd() - 1,
                                     seed.currentMap + 1
                             ),
                             new SeedInterval(
@@ -261,7 +261,7 @@ public class D05 {
                     break;
                 }
                 // ....[.........(.......)........]........
-                else if (interval.getSourceStart() <= seed.getStart() && seed.getStart() <= interval.getSourceEnd()) {
+                else if (interval.getSourceStart() < seed.getStart() && seed.getStart() <= interval.getSourceEnd()) {
                     queue.add(
                             new SeedInterval(
                                     newSeedStart,
@@ -273,7 +273,7 @@ public class D05 {
                     break;
                 }
                 // ....(.........[.......]........)........
-                else if (seed.getStart() <= interval.getSourceStart() && interval.getSourceEnd() <= seed.getEnd()) {
+                else if (seed.getStart() < interval.getSourceStart() && interval.getSourceEnd() <= seed.getEnd()) {
                     queue.addAll(List.of(
                             new SeedInterval(
                                     seed.getStart(),
@@ -282,7 +282,7 @@ public class D05 {
                             ),
                             new SeedInterval(
                                     interval.getDestStart(),
-                                    interval.getDestEnd(),
+                                    interval.getDestEnd() - 1,
                                     seed.currentMap + 1
                             ),
                             new SeedInterval(
