@@ -30,6 +30,30 @@ public class D05 {
         long sourceStart;
         long length;
 
+        public long getSourceStart() {
+            return sourceStart;
+        }
+
+        public long getDestStart() {
+            return destStart;
+        }
+
+        public long getSourceEnd() {
+            return sourceStart + length - 1;
+        }
+
+        public long getDestEnd() {
+            return destStart + length - 1;
+        }
+
+        public long getLength() {
+            return length;
+        }
+
+        public Long getDiff() {
+            return getDestStart() - getSourceStart();
+        }
+
         public Interval(long destStart, long sourceStart, long length) {
             this.destStart = destStart;
             this.sourceStart = sourceStart;
@@ -49,10 +73,30 @@ public class D05 {
     static class SeedInterval {
         long start;
         long length;
+        long currentMap;
 
-        public SeedInterval(long start, long length) {
+        public SeedInterval(long start, long end) {
             this.start = start;
-            this.length = length;
+            this.length = end - start + 1;
+            this.currentMap = 0;
+        }
+
+        public SeedInterval(long start, long end, long currentMap) {
+            this.start = start;
+            this.length = end - start + 1;
+            this.currentMap = currentMap;
+        }
+
+        public long getStart() {
+            return start;
+        }
+
+        public long getLength() {
+            return length;
+        }
+
+        public long getEnd() {
+            return start + length - 1;
         }
 
         @Override
@@ -94,7 +138,7 @@ public class D05 {
         ++idLine;
 
 
-        for (int idMap = 0; idMap < 7; ++idMap) {
+        for (long idMap = 0; idMap < 7; ++idMap) {
             maps.add(new ArrayList<>());
         }
 
@@ -158,73 +202,111 @@ public class D05 {
             seedIntervals.add(
                     new SeedInterval(
                             seeds.get(idSeed),
-                            seeds.get(idSeed + 1)
+                            seeds.get(idSeed) + seeds.get(idSeed + 1) - 1
                     )
             );
         }
+        Queue<SeedInterval> queue = new LinkedList<>(seedIntervals);
 
-        int seedIntervalId = 0;
+        ArrayList<SeedInterval> finalSeeds = new ArrayList<>();
 
+        while (!queue.isEmpty()) {
+            SeedInterval seed = queue.poll();
+            if (seed.currentMap == maps.size()) {
+                finalSeeds.add(seed);
+                continue;
+            }
 
-        for (seedIntervalId = 0; seedIntervalId < seedIntervals.size(); ++seedIntervalId) {
-            var seedInterval = seedIntervals.get(seedIntervalId);
-            var seedStart = seedInterval.start;
-            var seedEnd = seedInterval.start + seedInterval.length;
+            ArrayList<Interval> map = maps.get((int) seed.currentMap);
 
-            seedIntervals.remove(seedInterval);
-            seedIntervalId--;
+            boolean intersects = false;
+            for (var interval : map) {
+                // Check if intersects
 
-            for (var map : maps) {
-                for (var interval : map) {
-                    var sourceStart = interval.sourceStart;
-                    var sourceEnd = interval.sourceStart + interval.length;
+                long newSeedStart = seed.getStart() + interval.getDiff();
+                long newSeedEnd = seed.getEnd() + interval.getDiff();
 
-                    var destStart = interval.destStart;
-                    var destEnd = interval.destStart + interval.length;
-
-                    // (.....[....).....]
-                    seedIntervals.remove(seedInterval);
-                    if (seedStart <= sourceStart && sourceStart <= seedEnd && seedEnd <= sourceEnd) {
-                        seedIntervals.addAll(
-                                List.of(
-                                        new SeedInterval(seedStart, sourceStart - seedStart),
-                                        new SeedInterval(destStart, seedEnd - sourceStart)
-                                )
-                        );
-                    }
-                    // [.....(....].....)
-                    else if (sourceStart <= seedStart && seedStart <= sourceEnd && sourceEnd <= seedEnd) {
-                        seedIntervals.addAll(
-                                List.of(
-                                        new SeedInterval(destStart, sourceEnd - seedStart),
-                                        new SeedInterval(seedEnd, seedEnd - sourceEnd)
-                                )
-                        );
-                    }
-                    // [.....(....).....]
-                    else if (sourceStart <= seedStart && seedEnd <= sourceEnd) {
-                        seedIntervals.add(
-                                new SeedInterval(destStart, seedEnd - seedStart)
-                        );
-                    }
-                    // (.....[....].....)
-                    else if (seedStart <= sourceStart && sourceEnd <= seedEnd)
-                        seedIntervals.addAll(
-                                List.of(
-                                        new SeedInterval(seedStart, sourceStart - seedStart),
-                                        new SeedInterval(destStart, sourceEnd - sourceStart),
-                                        new SeedInterval(seedEnd, seedEnd - sourceEnd)
-                                )
-                        );
+                // ....(.........[.......)........]........
+                if (seed.getStart() <= interval.getSourceStart() && interval.getSourceStart() <= seed.getEnd() && seed.getEnd() <= interval.getSourceEnd()) {
+                    queue.addAll(List.of(
+                            new SeedInterval(
+                                    seed.getStart(),
+                                    interval.getSourceStart() - 1,
+                                    seed.currentMap + 1
+                            ),
+                            new SeedInterval(
+                                    interval.getDestStart(),
+                                    newSeedEnd,
+                                    seed.currentMap + 1
+                            )
+                    ));
+                    intersects = true;
+                    break;
                 }
+                // ....[.........(.......]........)........
+                else if (interval.getSourceStart() <= seed.getStart() && seed.getStart() <= interval.getSourceEnd() && interval.getSourceEnd() <= seed.getEnd()) {
+                    queue.addAll(List.of(
+                            new SeedInterval(
+                                    newSeedStart,
+                                    interval.getDestEnd(),
+                                    seed.currentMap + 1
+                            ),
+                            new SeedInterval(
+                                    interval.getSourceEnd(),
+                                    seed.getEnd(),
+                                    seed.currentMap + 1
+                            )
+                    ));
+                    intersects = true;
+                    break;
+                }
+                // ....[.........(.......)........]........
+                else if (interval.getSourceStart() <= seed.getStart() && seed.getStart() <= interval.getSourceEnd()) {
+                    queue.add(
+                            new SeedInterval(
+                                    newSeedStart,
+                                    newSeedEnd,
+                                    seed.currentMap + 1
+                            )
+                    );
+                    intersects = true;
+                    break;
+                }
+                // ....(.........[.......]........)........
+                else if (seed.getStart() <= interval.getSourceStart() && interval.getSourceEnd() <= seed.getEnd()) {
+                    queue.addAll(List.of(
+                            new SeedInterval(
+                                    seed.getStart(),
+                                    interval.getSourceStart() - 1,
+                                    seed.currentMap + 1
+                            ),
+                            new SeedInterval(
+                                    interval.getDestStart(),
+                                    interval.getDestEnd(),
+                                    seed.currentMap + 1
+                            ),
+                            new SeedInterval(
+                                    interval.getSourceEnd(),
+                                    seed.getEnd(),
+                                    seed.currentMap + 1
+                            )
+                    ));
+                    intersects = true;
+                    break;
+                }
+            }
+            if (!intersects) {
+                seed = new SeedInterval(seed.getStart(), seed.getEnd(), seed.currentMap + 1);
+                queue.add(seed);
             }
         }
 
-        // Find min of start of seedIntervals
-        long partTwo = seedIntervals.stream()
-                .mapToLong(seedInterval -> seedInterval.start)
-                .min()
-                .orElseThrow();
+        // Get min
+        min = Long.MAX_VALUE;
+        for (var seed : finalSeeds) {
+            min = Math.min(min, seed.getStart());
+        }
+        System.out.println(min);
 
     }
 
