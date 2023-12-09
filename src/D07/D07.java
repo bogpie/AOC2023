@@ -69,13 +69,44 @@ public class D07 {
         }
     }
 
-    static class Hand implements Comparable<Hand> {
+    static class Hand {
         ArrayList<Card> cards = new ArrayList<>();
 
         public Hand(String string) {
             for (int i = 0; i < string.length(); i++) {
                 cards.add(Card.valueOf(string.charAt(i)));
             }
+        }
+
+        public Hand getReplace() {
+            String string = cards.toString();
+            Hand replace = this;
+
+            // If there is no J, we don't need to replace anything
+            if (!string.contains("J")) {
+                return replace;
+            }
+
+            var possible = new ArrayList<Hand>();
+
+            // For each possible card to replace the J
+            for (Card card : Card.values()) {
+                // Create a new hand with the replaced card
+                var newString = string
+                        .replace("J", card.toString())
+                        .replace("[", "")
+                        .replace("]", "")
+                        .replace(" ", "")
+                        .replace(",", "");
+                Hand newHand = new Hand(newString);
+                // Add it to the list of possible hands
+                possible.add(newHand);
+            }
+
+            possible.sort(handOrderPartOne);
+            replace = possible.get(0);
+
+            return replace;
         }
 
         public Type getType() {
@@ -148,27 +179,76 @@ public class D07 {
         public String toString() {
             return cards.toString();
         }
+    }
 
+    static Comparator<Hand> handOrderPartOne = (hand, other) -> {
+        // Check for type
+        Type type = hand.getType();
+        Type otherType = other.getType();
 
-        public int compareTo(Hand other) {
-            // Check for type
-            var type = getType();
-            var otherType = other.getType();
+        if (type.compareTo(otherType) != 0) {
+            return hand.getType().compareTo(other.getType());
+        }
 
-            if (type.compareTo(otherType) != 0) {
-                return getType().compareTo(other.getType());
-            }
-
-            // Check for high card instead
-            for (int i = 0; i < cards.size(); i++) {
-                if (cards.get(i).compareTo(other.cards.get(i)) != 0) {
-                    return cards.get(i).compareTo(other.cards.get(i));
+        // Check for high card instead
+        for (int i = 0; i < hand.cards.size(); i++) {
+            try {
+                if (hand.cards.get(i).compareTo(other.cards.get(i)) != 0) {
+                    return hand.cards.get(i).compareTo(other.cards.get(i));
                 }
+            } catch (Exception e) {
+                return 0;
             }
 
+        }
+
+        return 0;
+    };
+
+    static Comparator<Card> cardOrderPartTwo = (card, other) -> {
+        if (card == other) {
             return 0;
         }
-    }
+
+        // "J" is the lowest card
+        if (card == Card.card_J) {
+            return 1;
+        }
+
+        if (other == Card.card_J) {
+            return -1;
+        }
+
+        return card.compareTo(other);
+    };
+
+    static Comparator<Hand> handOrderPartTwo = (hand, other) -> {
+        var replace = hand.getReplace();
+        var otherReplace = other.getReplace();
+        var replaceType = replace.getType();
+        var otherReplaceType = otherReplace.getType();
+
+        if (replaceType.compareTo(otherReplaceType) != 0) {
+            return replace.getType().compareTo(otherReplace.getType());
+        }
+
+        // Check for high card instead
+        for (int i = 0; i < hand.cards.size(); i++) {
+            Card card = hand.cards.get(i);
+            Card otherCard = other.cards.get(i);
+            if (cardOrderPartTwo.compare(
+                    card,
+                    otherCard
+            ) != 0) {
+                return cardOrderPartTwo.compare(
+                        card,
+                        otherCard
+                );
+            }
+        }
+
+        return 0;
+    };
 
     static class Play {
         Hand hand;
@@ -218,8 +298,34 @@ public class D07 {
 
         parse(lines, plays);
 
+        partOne(plays);
+        partTwo(plays);
+    }
+
+    private void partTwo(ArrayList<Play> plays) {
         plays.sort(
-                Comparator.comparing((Play p) -> p.hand)
+                (play, other) -> handOrderPartTwo.compare(play.hand, other.hand)
+        );
+
+        long sum = 0;
+        int i = 0;
+        for (Play play : plays) {
+            System.out.println("Play: " + play
+                    + " Rank: " + (plays.size() - i)
+                    + " Replace: " + play.hand.getReplace()
+                    + " Type: " + play.hand.getReplace().getType()
+            );
+
+            int rank = plays.size() - i++;
+            sum += play.bid * rank;
+        }
+
+        System.out.println(sum);
+    }
+
+    private static void partOne(ArrayList<Play> plays) {
+        plays.sort(
+                (play, other) -> handOrderPartOne.compare(play.hand, other.hand)
         );
 
         long sum = 0;
